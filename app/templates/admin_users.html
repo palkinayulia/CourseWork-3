@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="grid grid-admin">
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <h2>Добавление пользователя</h2>
+        <p class="muted">
+          Создание новой учётной записи для HR-специалиста или администратора.
+        </p>
+      </div>
+      <span class="badge badge-violet">ADMIN</span>
+    </div>
+
+    {% if error %}
+      <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    {% if ok %}
+      <div class="alert alert-success">{{ ok }}</div>
+    {% endif %}
+
+    <form action="/admin/users/create" method="post" class="form-grid">
+      <div class="form-group">
+        <label for="username">Логин</label>
+        <input type="text" id="username" name="username" placeholder="Введите логин" required>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Пароль</label>
+        <input type="password" id="password" name="password" placeholder="Введите пароль" required>
+      </div>
+
+      <div class="form-group">
+        <label for="role">Роль</label>
+        <select id="role" name="role">
+          <option value="HR">HR</option>
+          <option value="ADMIN">ADMIN</option>
+        </select>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Создать пользователя</button>
+        <a href="/admin/profiles" class="btn btn-secondary">Профили и критерии</a>
+      </div>
+    </form>
+  </section>
+
+  <aside class="stack">
+    <section class="card metric-card">
+      <div class="metric-label">Режим доступа</div>
+      <div class="metric-big">ADMIN</div>
+      <p class="muted">
+        Администратор управляет пользователями, профилями и критериями системы.
+      </p>
+    </section>
+
+    <section class="card">
+      <h3>Роли в системе</h3>
+      <div class="roles-list">
+        <div class="role-item">
+          <span class="badge badge-blue">HR</span>
+          <span class="muted">Выполнение анализа, просмотр истории, выбор готовых профилей.</span>
+        </div>
+        <div class="role-item">
+          <span class="badge badge-violet">ADMIN</span>
+          <span class="muted">Управление пользователями, профилями, критериями и доступом.</span>
+        </div>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<section class="card">
+  <div class="card-header">
+    <div>
+      <h2>Список пользователей</h2>
+      <p class="muted">
+        Зарегистрированные пользователи системы и их роли.
+      </p>
+    </div>
+  </div>
+
+  {% if users and users|length > 0 %}
+    <div class="table-wrap">
+      <table class="modern-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Логин</th>
+            <th>Роль</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+            <tr>
+              <td>{{ user.id }}</td>
+              <td>{{ user.username }}</td>
+              <td>
+                {% if user.role == "ADMIN" %}
+                  <span class="badge badge-violet">ADMIN</span>
+                {% else %}
+                  <span class="badge badge-blue">HR</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <h3>Пользователи не найдены</h3>
+      <p class="muted">В системе пока нет зарегистрированных записей.</p>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="card">
+  <div class="card-header">
+    <div>
+      <h2>Профили и критерии</h2>
+      <p class="muted">
+        ADMIN управляет сферами анализа, названиями критериев и их базовыми весами.
+      </p>
+    </div>
+    <span class="badge badge-violet">ADMIN</span>
+  </div>
+
+  {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+  {% endif %}
+
+  <form action="/admin/profiles/create" method="post" class="form-grid" style="margin-bottom: 24px;">
+    <div class="form-group">
+      <label for="name">Новый профиль</label>
+      <input type="text" id="name" name="name" placeholder="Например: Finance" required>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Добавить профиль</button>
+    </div>
+  </form>
+
+  <div class="stack">
+    {% for profile in profiles %}
+      <section class="card inner-card">
+        <div class="card-header">
+          <div>
+            <h3>{{ profile.name }}</h3>
+            <p class="muted">Настройка названий критериев и весов по умолчанию.</p>
+          </div>
+        </div>
+
+        <form action="/admin/profiles/update/{{ profile.id }}" method="post" class="form-grid">
+          <div class="form-group">
+            <label>Название профиля</label>
+            <input type="text" name="name" value="{{ profile.name }}" required>
+          </div>
+
+          <div class="weights-grid">
+            {% for c in profile.criteria %}
+              <div class="form-group">
+                <label>{{ c.code }} — название критерия</label>
+                <input type="text" name="label_{{ c.code|lower }}" value="{{ c.label }}" required>
+              </div>
+              <div class="form-group">
+                <label>{{ c.code }} — вес (%)</label>
+                <input type="number" name="w_{{ c.code|lower }}" min="0" max="100" step="0.1" value="{{ (c.weight * 100)|round(1) }}" required>
+              </div>
+            {% endfor %}
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Сохранить профиль</button>
+          </div>
+        </form>
+
+        <form action="/admin/profiles/delete/{{ profile.id }}" method="post" onsubmit="return confirm('Удалить профиль {{ profile.name }}?');" style="margin-top: 12px;">
+          <button type="submit" class="btn btn-secondary">Удалить профиль</button>
+        </form>
+      </section>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

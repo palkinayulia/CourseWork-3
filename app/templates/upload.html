@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="grid grid-2">
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <h2>Запуск анализа кандидатов</h2>
+        <p class="muted">
+          Загрузите файл с данными кандидатов для первичного анализа с использованием ML-модели и профиля оценки.
+        </p>
+      </div>
+      <span class="badge badge-blue">Новый анализ</span>
+    </div>
+
+    {% if error %}
+      <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    {% if errors %}
+      <div class="alert alert-danger">
+        <div class="alert-title">Найдены ошибки в файле:</div>
+        <ul class="error-list">
+          {% for e in errors %}
+            <li>{{ e }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    <form action="/upload" method="post" enctype="multipart/form-data" class="form-grid">
+      <label class="upload-dropzone" for="candidate-file">
+        <div class="upload-icon">↥</div>
+        <div class="upload-title">Выберите файл кандидатов</div>
+        <div class="upload-subtitle">
+          Поддерживаются форматы CSV и XLSX
+        </div>
+        <div class="upload-file-hint">Нажмите, чтобы выбрать файл</div>
+        <input id="candidate-file" type="file" name="file" accept=".csv,.xlsx" required class="file-input">
+        <div id="file-name" class="selected-file-name">Файл не выбран</div>
+      </label>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Загрузить и проанализировать</button>
+        <a href="/download-template" class="btn btn-secondary">Скачать «Шаблон для анализа»</a>
+      </div>
+    </form>
+  </section>
+
+  <aside class="stack">
+    <section class="card metric-card">
+      <div class="metric-label">Текущий профиль по умолчанию</div>
+      <div class="metric-big">{{ profile if profile else "IT" }}</div>
+      <p class="muted">
+        После загрузки результата можно выбрать профиль и вручную изменить веса критериев.
+      </p>
+    </section>
+
+    <section class="card">
+      <h3>Критерии профиля по умолчанию</h3>
+      <div class="weights-inline">
+        <span class="weight-chip">{{ criteria_labels.C1 if criteria_labels else "C1" }}</span>
+        <span class="weight-chip">{{ criteria_labels.C2 if criteria_labels else "C2" }}</span>
+        <span class="weight-chip">{{ criteria_labels.C3 if criteria_labels else "C3" }}</span>
+        <span class="weight-chip">{{ criteria_labels.C4 if criteria_labels else "C4" }}</span>
+        <span class="weight-chip">{{ criteria_labels.C5 if criteria_labels else "C5" }}</span>
+        <span class="weight-chip">{{ criteria_labels.C6 if criteria_labels else "C6" }}</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>Как начать работу</h3>
+      <div class="info-steps">
+        <div class="info-step">
+          <div class="info-step-num">1</div>
+          <div>
+            <div class="info-step-title">Скачайте шаблон для анализа</div>
+            <div class="muted">Система выдаёт готовый Excel-файл с русскими названиями столбцов.</div>
+          </div>
+        </div>
+
+        <div class="info-step">
+          <div class="info-step-num">2</div>
+          <div>
+            <div class="info-step-title">Заполните данные кандидатов</div>
+            <div class="muted">Укажите информацию по каждому кандидату в полях файла шаблона.</div>
+          </div>
+        </div>
+
+        <div class="info-step">
+          <div class="info-step-num">3</div>
+          <div>
+            <div class="info-step-title">Загрузите файл в систему</div>
+            <div class="muted">Данные колонок будут автоматически приведены к внутреннему формату.</div>
+          </div>
+        </div>
+
+        <div class="info-step">
+          <div class="info-step-num">4</div>
+          <div>
+            <div class="info-step-title">Получите результат анализа</div>
+            <div class="muted">Система рассчитает ML-оценку, критерии и итоговый балл.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const fileInput = document.getElementById("candidate-file");
+    const fileName = document.getElementById("file-name");
+
+    if (fileInput && fileName) {
+      fileInput.addEventListener("change", function () {
+        if (this.files && this.files.length > 0) {
+          fileName.textContent = "Выбран файл: " + this.files[0].name;
+          fileName.classList.add("has-file");
+        } else {
+          fileName.textContent = "Файл не выбран";
+          fileName.classList.remove("has-file");
+        }
+      });
+    }
+  });
+</script>
+{% endblock %}

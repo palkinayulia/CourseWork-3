@@ -1,0 +1,613 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="results-layout">
+  <section class="stats-grid">
+    <div class="card stat-card">
+      <div class="stat-label">Файл</div>
+      <div class="stat-value stat-text">{{ filename }}</div>
+    </div>
+
+    <div class="card stat-card">
+      <div class="stat-label">Кандидатов</div>
+      <div class="stat-value">{{ candidates_count if candidates_count is defined else (rows|length if rows else 0) }}</div>
+    </div>
+
+    <div class="card stat-card">
+      <div class="stat-label">Средний итоговый балл</div>
+      <div class="stat-value">{{ avg_score if avg_score is defined else "—" }}</div>
+    </div>
+
+    <div class="card stat-card">
+      <div class="stat-label">Топ-кандидат</div>
+      <div class="stat-value stat-text">{{ top_candidate if top_candidate is defined else "—" }}</div>
+    </div>
+  </section>
+
+  <div class="grid grid-results">
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h2>Настройка пересчёта</h2>
+          <p class="muted">
+            Выбери профиль оценки и при необходимости скорректируй веса критериев вручную.
+          </p>
+        </div>
+        <span class="badge badge-blue">Переоценка</span>
+      </div>
+
+      <form action="/score" method="post" class="form-grid">
+        <input type="hidden" name="filename" value="{{ filename }}">
+
+        <div class="form-group">
+          <label for="profile">Профиль оценки</label>
+          <select name="profile" id="profile">
+            {% for p in profiles %}
+              <option value="{{ p }}" {% if p == profile %}selected{% endif %}>{{ p }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="weights-block">
+          <div class="weights-title-row">
+            <h3>Веса критериев</h3>
+            <span class="muted">Названия критериев загружаются из выбранного профиля. Значения указываются в процентах.</span>
+          </div>
+
+          <div class="weights-grid">
+            <div class="form-group">
+              <label id="label-c1">{{ criteria_labels.C1 if criteria_labels else "C1 — Опыт работы" }}</label>
+              <input id="input-c1" type="number" name="w_c1" min="0" max="100" step="0.1" value="{{ weights.C1 if weights else 15 }}">
+            </div>
+
+            <div class="form-group">
+              <label id="label-c2">{{ criteria_labels.C2 if criteria_labels else "C2 — Образование" }}</label>
+              <input id="input-c2" type="number" name="w_c2" min="0" max="100" step="0.1" value="{{ weights.C2 if weights else 35 }}">
+            </div>
+
+            <div class="form-group">
+              <label id="label-c3">{{ criteria_labels.C3 if criteria_labels else "C3 — Профессиональные навыки" }}</label>
+              <input id="input-c3" type="number" name="w_c3" min="0" max="100" step="0.1" value="{{ weights.C3 if weights else 25 }}">
+            </div>
+
+            <div class="form-group">
+              <label id="label-c4">{{ criteria_labels.C4 if criteria_labels else "C4 — Soft skills" }}</label>
+              <input id="input-c4" type="number" name="w_c4" min="0" max="100" step="0.1" value="{{ weights.C4 if weights else 15 }}">
+            </div>
+
+            <div class="form-group">
+              <label id="label-c5">{{ criteria_labels.C5 if criteria_labels else "C5 — Стабильность" }}</label>
+              <input id="input-c5" type="number" name="w_c5" min="0" max="100" step="0.1" value="{{ weights.C5 if weights else 5 }}">
+            </div>
+
+            <div class="form-group">
+              <label id="label-c6">{{ criteria_labels.C6 if criteria_labels else "C6 — Дополнительные факторы" }}</label>
+              <input id="input-c6" type="number" name="w_c6" min="0" max="100" step="0.1" value="{{ weights.C6 if weights else 5 }}">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+  <button type="submit" class="btn btn-primary">Пересчитать результаты</button>
+  <a href="/" class="btn btn-secondary">Новый анализ</a>
+  {% if rows and rows|length > 0 %}
+    <button type="button" class="btn btn-secondary" onclick="submitPdfExport()">Скачать PDF-отчет</button>
+  {% endif %}
+</div>
+      </form>
+    </section>
+
+    <aside class="stack">
+      <section class="card metric-card">
+        <div class="metric-label">Активный профиль</div>
+        <div class="metric-big" id="active-profile">{{ profile }}</div>
+        <p class="muted">
+          ML-модель формирует базовую оценку, после чего итоговый балл уточняется системой критериев.
+        </p>
+      </section>
+
+      <section class="card">
+        <h3>Текущие веса</h3>
+        <div class="weights-inline">
+          <span class="weight-chip" id="chip-c1">{{ criteria_labels.C1 if criteria_labels else "C1" }}: {{ weights.C1 }}%</span>
+          <span class="weight-chip" id="chip-c2">{{ criteria_labels.C2 if criteria_labels else "C2" }}: {{ weights.C2 }}%</span>
+          <span class="weight-chip" id="chip-c3">{{ criteria_labels.C3 if criteria_labels else "C3" }}: {{ weights.C3 }}%</span>
+          <span class="weight-chip" id="chip-c4">{{ criteria_labels.C4 if criteria_labels else "C4" }}: {{ weights.C4 }}%</span>
+          <span class="weight-chip" id="chip-c5">{{ criteria_labels.C5 if criteria_labels else "C5" }}: {{ weights.C5 }}%</span>
+          <span class="weight-chip" id="chip-c6">{{ criteria_labels.C6 if criteria_labels else "C6" }}: {{ weights.C6 }}%</span>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Легенда</h3>
+        <div class="weights-inline">
+          <span class="score-pill score-high">Высокий балл</span>
+          <span class="score-pill score-medium">Средний балл</span>
+          <span class="score-pill score-low">Низкий балл</span>
+        </div>
+      </section>
+    </aside>
+  </div>
+{% if rows and rows|length > 0 %}
+<form id="pdfExportForm" action="/export-pdf" method="post" style="display:none;">
+  <input type="hidden" name="filename" value="{{ filename }}">
+  <input type="hidden" name="profile" value="{{ profile }}">
+  <input type="hidden" name="avg_score" value="{{ avg_score }}">
+  <input type="hidden" name="candidates_count" value="{{ candidates_count }}">
+  <input type="hidden" name="top_candidate" value="{{ top_candidate }}">
+  <input type="hidden" name="rows_json" id="rowsJsonField">
+  <input type="hidden" name="weights_json" id="weightsJsonField">
+  <input type="hidden" name="criteria_labels_json" id="criteriaLabelsJsonField">
+</form>
+{% endif %}
+  {% if rows and rows|length > 0 %}
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <h2>Дашборд анализа</h2>
+        <p class="muted">
+          Визуализация результатов.
+        </p>
+      </div>
+    </div>
+
+    <div class="dashboard-grid">
+      <div class="card dashboard-card">
+        <h3>Распределение итоговых баллов</h3>
+        <canvas id="scoreDistributionChart"></canvas>
+      </div>
+
+      <div class="card dashboard-card">
+        <h3>Веса критериев</h3>
+        <canvas id="weightsChart"></canvas>
+      </div>
+    </div>
+
+    <div class="dashboard-grid single">
+      <div class="card dashboard-card">
+        <h3>Топ-5 кандидатов</h3>
+        <div class="top-candidates-list">
+          {% for r in rows[:5] %}
+            <div class="top-candidate-item">
+              <div>
+                <div class="top-candidate-name">{{ r.get("full_name", "—") }}</div>
+                <div class="muted small">{{ r.get("vacancy", "—") }}</div>
+              </div>
+              {% set top_final_value = r.get("final_score", 0) %}
+              <span class="score-pill
+                {% if top_final_value >= 80 %}
+                  score-high
+                {% elif top_final_value >= 60 %}
+                  score-medium
+                {% else %}
+                  score-low
+                {% endif %}
+              ">
+                {{ top_final_value }}
+              </span>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <h2>Результаты анализа</h2>
+        <p class="muted">
+          Основные показатели кандидатов и итоговая аналитическая оценка.
+        </p>
+      </div>
+    </div>
+
+    {% if rows and rows|length > 0 %}
+      <div class="table-wrap">
+        <table class="modern-table results-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>ФИО</th>
+              <th>Вакансия</th>
+              <th>Опыт</th>
+              <th>Образование</th>
+              <th>Навыки %</th>
+              <th>Тест</th>
+              <th>Интервью</th>
+              <th>ML</th>
+              <th>Критерии</th>
+              <th>Итог</th>
+              <th>Факторы</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in rows %}
+              <tr>
+                <td>{{ r.get("candidate_id", "") }}</td>
+                <td class="cell-strong">{{ r.get("full_name", "") }}</td>
+                <td>{{ r.get("vacancy", "") }}</td>
+                <td>{{ r.get("years_experience", "") }}</td>
+
+                <td>
+                  {% set edu = r.get("education_level", "") %}
+                  {% if edu == "school" %}
+                    школа
+                  {% elif edu == "college" %}
+                    колледж
+                  {% elif edu == "bachelor" %}
+                    бакалавр
+                  {% elif edu == "master" %}
+                    магистр
+                  {% elif edu == "phd" %}
+                    кандидат наук
+                  {% else %}
+                    {{ edu }}
+                  {% endif %}
+                </td>
+
+                <td>{{ r.get("skills_match_percent", "") }}</td>
+                <td>{{ r.get("test_score", "") }}</td>
+                <td>{{ r.get("interview_score", "") }}</td>
+
+                <td>{{ r.get("base_score", "") }}</td>
+                <td>{{ r.get("criteria_score", "") }}</td>
+
+                <td>
+                  {% set final_value = r.get("final_score", 0) %}
+                  <span class="score-pill
+                    {% if final_value >= 80 %}
+                      score-high
+                    {% elif final_value >= 60 %}
+                      score-medium
+                    {% else %}
+                      score-low
+                    {% endif %}
+                  ">
+                    {{ final_value }}
+                  </span>
+                </td>
+
+                <td class="top-factors-cell">
+                  {% if r.get("top_factors") %}
+                    {{ r.get("top_factors") }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+              </tr>
+
+              <tr class="details-row">
+                <td colspan="12">
+                  <div class="candidate-details">
+                    <span><strong>Профильное образование:</strong>
+                      {% if r.get("major_relevant") == 1 or r.get("major_relevant") == 1.0 %}
+                        Да
+                      {% else %}
+                        Нет
+                      {% endif %}
+                    </span>
+
+                    <span><strong>Средний срок работы:</strong> {{ r.get("avg_tenure_months", "") }} мес.</span>
+                    <span><strong>Зарплатные ожидания:</strong> {{ r.get("salary_expectation", "") }}</span>
+                    <span><strong>Бюджет вакансии:</strong> {{ r.get("vacancy_budget", "") }}</span>
+                    <span><strong>Мотивация:</strong> {{ r.get("motivation_score", "") }}</span>
+
+                    {% if r.get("risk_level") %}
+                      <span>
+                        <strong>Риск:</strong>
+                        <span class="risk-pill
+                          {% if r.get('risk_level')|string|lower in ['low', 'низкий'] %}
+                            risk-low
+                          {% elif r.get('risk_level')|string|lower in ['medium', 'средний'] %}
+                            risk-medium
+                          {% else %}
+                            risk-high
+                          {% endif %}
+                        ">
+                          {{ r.get("risk_level") }}
+                        </span>
+                      </span>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <h3>Нет данных для отображения</h3>
+        <p class="muted">Попробуй загрузить другой файл.</p>
+      </div>
+    {% endif %}
+  </section>
+</div>
+
+{% if rows and rows|length > 0 %}
+  {% set score_0_39 = namespace(value=0) %}
+  {% set score_40_59 = namespace(value=0) %}
+  {% set score_60_79 = namespace(value=0) %}
+  {% set score_80_100 = namespace(value=0) %}
+
+  {% for r in rows %}
+    {% set fs = r.get("final_score", 0)|float %}
+    {% if fs < 40 %}
+      {% set score_0_39.value = score_0_39.value + 1 %}
+    {% elif fs < 60 %}
+      {% set score_40_59.value = score_40_59.value + 1 %}
+    {% elif fs < 80 %}
+      {% set score_60_79.value = score_60_79.value + 1 %}
+    {% else %}
+      {% set score_80_100.value = score_80_100.value + 1 %}
+    {% endif %}
+  {% endfor %}
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  let weightsChartInstance = null;
+
+  const exportRows = {{ rows|tojson }};
+  const exportWeights = {{ weights|tojson }};
+  const exportCriteriaLabels = {{ criteria_labels|tojson }};
+
+  function submitPdfExport() {
+    const rowsField = document.getElementById('rowsJsonField');
+    const weightsField = document.getElementById('weightsJsonField');
+    const labelsField = document.getElementById('criteriaLabelsJsonField');
+    const form = document.getElementById('pdfExportForm');
+
+    if (!rowsField || !weightsField || !labelsField || !form) return;
+
+    rowsField.value = JSON.stringify(exportRows || []);
+    weightsField.value = JSON.stringify(exportWeights || {});
+    labelsField.value = JSON.stringify(exportCriteriaLabels || {});
+    form.submit();
+  }
+
+  const scoreDistributionCtx = document.getElementById('scoreDistributionChart');
+  if (scoreDistributionCtx) {
+    new Chart(scoreDistributionCtx, {
+      type: 'bar',
+      data: {
+        labels: ['0–39', '40–59', '60–79', '80–100'],
+        datasets: [{
+          label: 'Количество кандидатов',
+          data: [
+            {{ score_0_39.value }},
+            {{ score_40_59.value }},
+            {{ score_60_79.value }},
+            {{ score_80_100.value }}
+          ],
+          backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#10b981'],
+          borderRadius: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              precision: 0
+            }
+          }
+        }
+      }
+    });
+  }
+
+  function buildWeightsChart(labels, values) {
+    const weightsCtx = document.getElementById('weightsChart');
+    if (!weightsCtx) return;
+
+    if (weightsChartInstance) {
+      weightsChartInstance.destroy();
+    }
+
+    weightsChartInstance = new Chart(weightsCtx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Вес, %',
+          data: values,
+          backgroundColor: ['#6366f1', '#8b5cf6', '#ec4899', '#14b8a6', '#f59e0b', '#10b981'],
+          borderRadius: 8
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          x: {
+            beginAtZero: true,
+            max: 100
+          }
+        }
+      }
+    });
+  }
+
+  buildWeightsChart(
+    [
+      '{{ criteria_labels.C1 if criteria_labels else "C1" }}',
+      '{{ criteria_labels.C2 if criteria_labels else "C2" }}',
+      '{{ criteria_labels.C3 if criteria_labels else "C3" }}',
+      '{{ criteria_labels.C4 if criteria_labels else "C4" }}',
+      '{{ criteria_labels.C5 if criteria_labels else "C5" }}',
+      '{{ criteria_labels.C6 if criteria_labels else "C6" }}'
+    ],
+    [
+      {{ weights.C1 if weights else 15 }},
+      {{ weights.C2 if weights else 35 }},
+      {{ weights.C3 if weights else 25 }},
+      {{ weights.C4 if weights else 15 }},
+      {{ weights.C5 if weights else 5 }},
+      {{ weights.C6 if weights else 5 }}
+    ]
+  );
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const profileSelect = document.getElementById('profile');
+
+    const labelIds = {
+      C1: document.getElementById('label-c1'),
+      C2: document.getElementById('label-c2'),
+      C3: document.getElementById('label-c3'),
+      C4: document.getElementById('label-c4'),
+      C5: document.getElementById('label-c5'),
+      C6: document.getElementById('label-c6')
+    };
+
+    const inputIds = {
+      C1: document.getElementById('input-c1'),
+      C2: document.getElementById('input-c2'),
+      C3: document.getElementById('input-c3'),
+      C4: document.getElementById('input-c4'),
+      C5: document.getElementById('input-c5'),
+      C6: document.getElementById('input-c6')
+    };
+
+    const chipIds = {
+      C1: document.getElementById('chip-c1'),
+      C2: document.getElementById('chip-c2'),
+      C3: document.getElementById('chip-c3'),
+      C4: document.getElementById('chip-c4'),
+      C5: document.getElementById('chip-c5'),
+      C6: document.getElementById('chip-c6')
+    };
+
+    const activeProfile = document.getElementById('active-profile');
+
+    async function loadProfileConfig(profileName) {
+      try {
+        const response = await fetch(`/api/profile-config/${encodeURIComponent(profileName)}`);
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const labels = data.criteria_labels || {};
+        const weights = data.weights || {};
+
+        ['C1', 'C2', 'C3', 'C4', 'C5', 'C6'].forEach(code => {
+          if (labelIds[code]) {
+            labelIds[code].textContent = labels[code] || code;
+          }
+          if (inputIds[code]) {
+            inputIds[code].value = weights[code] ?? 0;
+          }
+          if (chipIds[code]) {
+            chipIds[code].textContent = `${labels[code] || code}: ${weights[code] ?? 0}%`;
+          }
+        });
+
+        if (activeProfile) {
+          activeProfile.textContent = data.profile || profileName;
+        }
+
+        buildWeightsChart(
+          [
+            labels.C1 || 'C1',
+            labels.C2 || 'C2',
+            labels.C3 || 'C3',
+            labels.C4 || 'C4',
+            labels.C5 || 'C5',
+            labels.C6 || 'C6'
+          ],
+          [
+            weights.C1 ?? 0,
+            weights.C2 ?? 0,
+            weights.C3 ?? 0,
+            weights.C4 ?? 0,
+            weights.C5 ?? 0,
+            weights.C6 ?? 0
+          ]
+        );
+      } catch (error) {
+        console.error('Ошибка загрузки профиля:', error);
+      }
+    }
+
+    if (profileSelect) {
+      profileSelect.addEventListener('change', function () {
+        loadProfileConfig(this.value);
+      });
+    }
+  });
+</script>
+
+  <style>
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 16px;
+    }
+
+    .dashboard-grid.single {
+      grid-template-columns: 1fr;
+      margin-top: 20px;
+    }
+
+    .dashboard-card {
+      padding: 20px;
+    }
+
+    .dashboard-card h3 {
+      margin-bottom: 16px;
+    }
+
+    .dashboard-card canvas {
+      display: block;
+      width: 100% !important;
+      height: 300px !important;
+      max-width: 100%;
+      margin-top: 10px;
+    }
+
+    .top-candidates-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .top-candidate-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .top-candidate-name {
+      font-weight: 600;
+    }
+
+    .small {
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 992px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+{% endif %}
+{% endblock %}

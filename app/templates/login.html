@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Вход — Recruitment Analytics</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+</head>
+<body class="login-body">
+  <div class="login-layout">
+    <section class="login-card">
+      <div class="login-badge">HR Analytics</div>
+      <h1 class="login-title">Вход в систему</h1>
+      <p class="login-text">
+        Аналитическая система оценки кандидатов, использующая
+        машинное обучение и систему критериев для поддержки решений HR-специалиста.
+      </p>
+
+      {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+      {% endif %}
+
+      <form action="/login" method="post" class="form-grid">
+        <div class="form-group">
+          <label for="username">Логин</label>
+          <input type="text" id="username" name="username" placeholder="Введите логин" required>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Пароль</label>
+          <input type="password" id="password" name="password" placeholder="Введите пароль" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full">Войти</button>
+      </form>
+    </section>
+
+    <aside class="login-side-panel">
+      <h2>Возможности системы</h2>
+
+      <div class="login-feature-list">
+        <div class="login-feature">
+          <div class="login-feature-icon">1</div>
+          <div>
+            <div class="login-feature-title">Загрузка файлов</div>
+            <div class="muted">Поддержка CSV и XLSX с данными кандидатов.</div>
+          </div>
+        </div>
+
+        <div class="login-feature">
+          <div class="login-feature-icon">2</div>
+          <div>
+            <div class="login-feature-title">ML-скоринг</div>
+            <div class="muted">Прогноз вероятности успешности кандидата на основе модели.</div>
+          </div>
+        </div>
+
+        <div class="login-feature">
+          <div class="login-feature-icon">3</div>
+          <div>
+            <div class="login-feature-title">Гибридная оценка</div>
+            <div class="muted">Комбинация базовой ML-оценки и критериев HR.</div>
+          </div>
+        </div>
+
+        <div class="login-feature">
+          <div class="login-feature-icon">4</div>
+          <div>
+            <div class="login-feature-title">История анализов</div>
+            <div class="muted">Сохранение прошлых сессий и повторный пересчёт результатов.</div>
+          </div>
+        </div>
+
+        <div class="login-feature">
+          <div class="login-feature-icon">5</div>
+          <div>
+            <div class="login-feature-title">Администрирование</div>
+            <div class="muted">Управление пользователями и ролями в системе.</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% if page_title %}{{ page_title }} — Recruitment Analytics{% else %}Recruitment Analytics{% endif %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div>
+        <div class="brand">
+          <div class="brand-logo">HR</div>
+          <div>
+            <div class="brand-title">Recruitment Analytics</div>
+            <div class="brand-subtitle">Оценка кандидатов</div>
+          </div>
+        </div>
+
+        <nav class="nav">
+          <a href="/" class="nav-link">Новый анализ</a>
+          <a href="/history" class="nav-link">История анализов</a>
+
+          {% if request.cookies.get("role") == "ADMIN" %}
+            <a href="/admin/users" class="nav-link">Пользователи</a>
+            <a href="/admin/profiles" class="nav-link">Профили и критерии</a>
+          {% endif %}
+        </nav>
+      </div>
+
+      <div class="sidebar-user">
+        {% if request.cookies.get("username") %}
+          <div class="sidebar-user-label">Текущий пользователь</div>
+          <div class="sidebar-user-name">{{ request.cookies.get("username") }}</div>
+          <div class="sidebar-user-role">
+            Роль: {{ request.cookies.get("role", "HR") }}
+          </div>
+          <a href="/logout" class="logout-link">Выйти</a>
+        {% else %}
+          <div class="sidebar-user-label">Гость</div>
+          <a href="/login" class="logout-link">Войти</a>
+        {% endif %}
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-row">
+          <button class="sidebar-toggle" type="button" onclick="toggleSidebar()">☰</button>
+          <div>
+            <div class="eyebrow">Интеллектуальная HR-система</div>
+            <h1 class="page-title">
+              {{ page_title if page_title else "Аналитическая система оценки кандидатов" }}
+            </h1>
+          </div>
+        </div>
+      </header>
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <script>
+    function toggleSidebar() {
+      document.body.classList.toggle("sidebar-collapsed");
+    }
+  </script>
+</body>
+</html>

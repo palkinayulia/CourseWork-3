@@ -1,0 +1,4 @@
+﻿candidate_id;full_name;vacancy;years_experience;education_level;skills_match_percent;test_score;interview_score;avg_tenure_months
+1;Иванов Иван;Data Analyst;3;bachelor;75;82;7;18
+2;Петрова Анна;Sales Manager;1;college;60;55;8;10
+3;Сидоров Максим;Office Admin;5;master;70;65;6;30

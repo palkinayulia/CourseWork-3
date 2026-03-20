@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="card">
+  <div class="card-header">
+    <div>
+      <h2>История анализов</h2>
+      <p class="muted">
+        Сохранённые результаты предыдущих сессий анализа кандидатов.
+      </p>
+    </div>
+    <a href="/" class="btn btn-primary">Новый анализ</a>
+  </div>
+
+  {% if rows and rows|length > 0 %}
+    <div class="history-list">
+      {% for row in rows %}
+        <div class="history-item">
+          <div class="history-main">
+            <div class="history-top">
+              <div>
+                <div class="history-filename">{{ row.filename }}</div>
+                <div class="history-meta">
+                  <span>Дата: {{ row.created_at }}</span>
+                  <span>Профиль: {{ row.profile }}</span>
+                  <span>Alpha: {{ row.alpha }}</span>
+                </div>
+              </div>
+              <span class="badge badge-blue">Анализ</span>
+            </div>
+
+            <div class="history-grid">
+              <div class="history-box">
+                <div class="history-box-label">Веса критериев</div>
+                <div class="weights-inline">
+                  {% for key, value in row.weights.items() %}
+                    <span class="weight-chip">{{ key }}: {{ (value * 100)|round(1) }}%</span>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <div class="history-box">
+                <div class="history-box-label">Топ-5 кандидатов</div>
+
+                {% if row.top5 and row.top5|length > 0 %}
+                  <div class="mini-table-wrap">
+                    <table class="modern-table mini-table">
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>ФИО</th>
+                          <th>Вакансия</th>
+                          <th>Final score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for candidate in row.top5 %}
+                          <tr>
+                            <td>{{ candidate.candidate_id }}</td>
+                            <td>{{ candidate.full_name }}</td>
+                            <td>{{ candidate.vacancy }}</td>
+                            <td>{{ candidate.final_score }}</td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                {% else %}
+                  <p class="muted">Нет сохранённых кандидатов в кратком результате.</p>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="history-actions">
+              <form action="/score" method="post">
+                <input type="hidden" name="filename" value="{{ row.filename }}">
+                <input type="hidden" name="profile" value="{{ row.profile }}">
+                {% for key, value in row.weights.items() %}
+                  <input type="hidden" name="w_{{ key|lower }}" value="{{ (value * 100)|round(1) }}">
+                {% endfor %}
+                <button type="submit" class="btn btn-secondary">Открыть повторно</button>
+              </form>
+
+              <form action="/history/delete/{{ row.id }}" method="post" onsubmit="return confirm('Удалить этот анализ из истории?');">
+                <button type="submit" class="btn btn-secondary">Удалить</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <h3>История пока пуста</h3>
+      <p class="muted">После первого анализа здесь появятся сохранённые результаты.</p>
+      <a href="/" class="btn btn-primary">Перейти к анализу</a>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}
